@@ -51,7 +51,3 @@ Plots velocity file.
 ### `mocap_acc.py`
 
 Plots one of the angular acceleration files (LH).
-
-### Obsolete
-
-`mocap_cmb_00.py` and `mocap_cmb_01.py`, `mocap_02.py`, `mocap_03.py` and `mocap_04.py` are obsolete.
