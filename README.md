@@ -22,7 +22,7 @@ Example:
 python mocap_gen_dirs.py -f mocap_valentijn/beach_repr_2b.tsv
 ```
 
-The above creates a file called `Saved: mocap_valentijn/beach_repr_2b_dirs.tsv` containing values :-).
+The above creates a file called `mocap_valentijn/beach_repr_2b_dirs.tsv` containing values :-).
 
 ### `mocap_eaf.py`
 
