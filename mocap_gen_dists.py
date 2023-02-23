@@ -2,10 +2,14 @@ import pandas as pd
 import math
 import argparse
 import os
+import sys
 
 # Use PYVENV in Development
 
 # Creates a file with "distances" travelled by the sensors.
+
+# zeroes:
+#   head -n20 dyad_brainstorm_1_light_ev.tsv | cut -f 387-389
 
 parser = argparse.ArgumentParser()
 parser.add_argument( "-f", "--filename", help="MoCap tsv file (3D positions).",
@@ -48,10 +52,13 @@ with open(args.filename, "r") as f:
             column_names = bits[1:] # We add a Timestamp later to this one too
             print( column_names )
         if len(bits) > 65:
-            bits     = [ float(x) for x in bits ]
-            triplets = [bits[i:i + 3] for i in range(2,len(bits)-2, 3)]
-            df_rows.append( bits[1:] ) #skip index number
-            #print( bits[0], bits[1], len(triplets), triplets[0], triplets[1] ) #bits[2:2+6] )
+            try:
+                bits     = [ float(x) for x in bits ]
+                triplets = [bits[i:i + 3] for i in range(2,len(bits)-2, 3)]
+                df_rows.append( bits[1:] ) #skip index number
+                #print( bits[0], bits[1], len(triplets), triplets[0], triplets[1] ) #bits[2:2+6] )
+            except ValueError:
+                print( "Skipping line", lnum )
         lnum += 1
 
 # Calcuate the distances, save in a new dataframe.
@@ -64,14 +71,23 @@ df_dists_rows = [ [0.0] * len(column_names) ] # init with zeros for timestamp 00
 row           = df_rows[0]
 prev_triplets = [ row[i:i + 3] for i in range(1,len(row)-1, 3) ]
 #print( prev_triplets )
-for row in df_rows[1:]:
+for ln, row in enumerate(df_rows[1:]):
     #print( row )
     ts       = row[0] # timestamp
     new_row  = [ ts ]
     triplets = [ row[i:i + 3] for i in range(1,len(row)-1, 3) ]
+    ti       = 0 # triplet index
     for t0,t1 in zip(triplets, prev_triplets):
         dist = dist3d( t0, t1 )
+        if dist == 0:
+            print( "Zero distance in line", ln, "at", ts, column_names[ti])
+            #sys.exit(1)
+        if dist >100: # what unit?
+            print( "Large distance", dist, "in line", ln, "at", ts, column_names[ti])
+            #dist = 0
+            #sys.exit(1)
         new_row.append( dist )
+        ti += 1
     prev_triplets = triplets
     df_dists_rows.append( new_row )
 
@@ -90,3 +106,4 @@ df_dists.to_csv(
     sep="\t"
 )
 print( "Saved:", dists_filename )
+
