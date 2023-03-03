@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import re
 import sys
 import matplotlib.pyplot as mp
 import matplotlib as mpl
@@ -23,6 +24,8 @@ parser.add_argument( "-d", "--distsfilename",
                      help="MoCap tsv file (distances, from mocap_gen_dists.py)." )
 parser.add_argument( "-D", "--dirsfilename",
                      help="MoCap tsv file (directions, from mocap_gen_dirs.py)." )
+parser.add_argument( "-f", "--filter", action="append",
+                     help="Regexp to filter sensor name.", default=[] )
 parser.add_argument( "-e", "--eaffilename",
                      help="EAF file to augment." )
 parser.add_argument( "-E", "--eafoutfilename",
@@ -34,6 +37,8 @@ parser.add_argument( "-g", "--minimumgap", default=120, type=int,
 parser.add_argument( "-t", "--threshold", default=0.1, type=float,
                      help="Movement threshold, only consider larger than threshold*max" )
 args = parser.parse_args()
+for arg in vars(args):
+     print( arg, "=", getattr(args, arg) )
 
 '''
 ls mocap_valentijn/*tsv
@@ -72,43 +77,16 @@ if not args.eafoutfilename:
         
 # ----------------------------
 
-'''
-print( ",".join(sorted(df_dists.columns)) )
-x_BackL, x_BackR, x_Chest, x_HeadFront, x_HeadL, x_HeadR, x_HeadTop, 
-
-x_LAnkleOut, x_LArm, x_LElbowOut, x_LForefootIn, x_LForefootOut, x_LHandIn, x_LHandOut, x_LHeelBack, x_LIndex2, x_LIndexTip, x_LKneeOut, x_LMiddle2, x_LMiddleTip, x_LPinky2, x_LPinkyTip, x_LRing2, x_LRingTip, x_LShin, x_LShoulderBack, x_LShoulderTop, x_LThigh, x_LThumb1, x_LThumbTip, x_LToeTip, x_LWristIn, x_LWristOut, 
-
-x_RAnkleOut, x_RArm, x_RElbowOut, x_RForefootIn, x_RForefootOut, x_RHandIn, x_RHandOut, x_RHeelBack, x_RIndex2, x_RIndexTip, x_RKneeOut, x_RMiddle2, x_RMiddleTip, x_RPinky2, x_RPinkyTip, x_RRing2, x_RRingTip, x_RShin, x_RShoulderBack, x_RShoulderTop, x_RThigh, x_RThumb1, x_RThumbTip, x_RToeTip, x_RWristIn, x_RWristOut, 
-
-x_SpineTop, x_WaistLBack, x_WaistLFront, x_WaistRBack, x_WaistRFront
-'''
-
-# A few ad hoc distance groups.
-group_Head = ["x_HeadFront", "x_HeadL", "x_HeadR", "x_HeadTop"]
-
-group_LFoot = ["x_LAnkleOut", "x_LForefootIn", "x_LForefootOut", "x_LHeelBack", "x_LKneeOut",
-               "x_LShin", "x_LThigh", "x_LToeTip"]
-group_RFoot = ["x_RAnkleOut", "x_RForefootIn", "x_RForefootOut", "x_RHeelBack", "x_RKneeOut",
-               "x_RShin", "x_RThigh", "x_RToeTip"]
-
-group_LArm = ["x_LShoulderBack", "x_LShoulderTop", "x_LArm", "x_LElbowOut", "x_LHandIn",
-              "x_LHandOut", "x_LWristIn", "x_LWristOut" ]
-group_RArm = ["x_RShoulderBack", "x_RShoulderTop", "x_RArm", "x_RElbowOut", "x_RHandIn",
-              "x_RHandOut", "x_RWristIn", "x_RWristOut" ]
-
-group_Body = ["x_BackL", "x_BackR", "x_Chest", "x_SpineTop", 
-              "x_WaistLBack", "x_WaistLFront", "x_WaistRBack", "x_WaistRFront"]
-
-
 # RESAMPLING
 
 df_dists['td'] = pd.to_timedelta(df_dists['Timestamp'], 's') # Create a timedelta column
 df_dists = df_dists.set_index(df_dists['td']) # and use it as index
-print( df_dists.head() )
+print( df_dists.tail() )
 
-# max() works better than mean()
-df_dists = df_dists.resample("50ms").max() # This resamples the 200 Hz to 20 Hz
-print( df_dists.head() )
+# sum()/max() works better than mean()
+#df_dists = df_dists.resample("50ms").sum() # This resamples the 200 Hz to 20 Hz
+#df_dists = df_dists.resample("100ms").sum() # This resamples the 200 Hz to 20 Hz
+#print( df_dists.head() )
 
 # NAIVE IMPLEMENTATION OVER DISTANCE GROUPS
 
@@ -121,20 +99,26 @@ print( df_dists.head() )
 # col_list.remove('english')
 # df['Sum'] = df[col_list].sum(axis=1)
 
-df_dists['LATotal'] = df_dists[["x_LHandIn", "x_LHandOut", "x_LWristIn", "x_LWristOut"]].sum(axis=1)
-df_dists['RATotal'] = df_dists[["x_RHandIn", "x_RHandOut", "x_RWristIn", "x_RWristOut"]].sum(axis=1)
+# Apply the filter(s) to the sensr names.
+filtered_sensors = []
+for sensor in df_dists.columns:
+    for filter_re in args.filter:
+        if re.search( filter_re, sensor ):
+            filtered_sensors.append( sensor )
+if len(filtered_sensors) == 0:
+    filtered_sensors = df_dists.columns
+filtered_sensors = [ x for x in filtered_sensors if x!="td" and x!="start" ]
+print( sorted(filtered_sensors) )
 
-for sensor in ["x_LHandIn", "x_LHandOut", "x_LWristIn", "x_LWristOut"]+["x_RHandIn", "x_RHandOut", "x_RWristIn", "x_RWristOut"]+["LATotal", "RATotal"]:
-#for sensor in ["x_LHandIn", "x_LHandOut", "x_LWristIn", "x_LWristOut",
-#               "x_RHandIn", "x_RHandOut", "x_RWristIn", "x_RWristOut",
-#               "x_WaistLBack", "x_WaistRBack"]:# group_LArm+group_RArm:
+for sensor in sorted(filtered_sensors):
     dist_max = df_dists[sensor].max()
     dist_min = df_dists[sensor].min()
+    threshold = dist_min + (dist_max * args.threshold) # take if > "10%"
+    over_t = (df_dists[sensor] > threshold).sum()
     print()
-    print( sensor, dist_min, dist_max )
+    print( f"{sensor}, [{round(dist_min, 2)}, {round(dist_max, 2)}] > {round(threshold, 2)} = {over_t}" )
     eaf.add_tier( sensor, ling='default-lt' )
     # instead of threshhold, difference in direction, we have that data?
-    threshold = dist_min + (dist_max * args.threshold) # take if > "10%"
     inside = False
     st = -1
     et = -1
@@ -147,7 +131,7 @@ for sensor in ["x_LHandIn", "x_LHandOut", "x_LWristIn", "x_LWristOut"]+["x_RHand
             #print( "NEW {:.3f} {:.4f}".format(float(ts), float(x)) )
             inside = True
             #st = int(ts / 1000000) # start time
-            st = int(ts * 1000) # start time
+            st = int(ts * 1000) # start time ?????????????????
             empty_time = st - previous_annotation[1] # to see if close to previous
             if empty_time < args.minimumgap: #arbitrary... 120ms
                 #print( "Short", previous_annotation )
@@ -169,11 +153,11 @@ for sensor in ["x_LHandIn", "x_LHandOut", "x_LWristIn", "x_LWristOut"]+["x_RHand
             current_annotation += [et, annotation_time]
             annotations.append( current_annotation )
             current_annotation = []
-    # we might have lost the last one if it is "inside" until the end.
+    # We might have lost the last one if it is "inside" until the end.
     #print( annotations )
     for annotation in annotations:
         if annotation[1] - annotation[0] > args.minimumlength:
-            print( annotation )
+            #print( annotation )
             eaf.add_annotation(sensor, annotation[0], annotation[1], value='Move')
             
 #eaf.to_file("mocap_valentijn/beach_repr_2_pb.eaf", pretty=True)
@@ -215,7 +199,7 @@ def label(sensor, val):
         return None
 
 # We can use the distance groups, as it is the same data
-for group in ["x_RHandOut"]: #group_LArm+group_RArm: #group_Head:
+for group in filtered_sensors:#
     for sensor in [group+"_X_dir", group+"_Y_dir", group+"_Z_dir"]:
         dist_max = df_dirs[sensor].max()
         dist_min = df_dirs[sensor].min()
