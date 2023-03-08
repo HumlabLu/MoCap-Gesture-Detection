@@ -213,13 +213,12 @@ df_pos = pd.DataFrame(
 # ============================================================================
 
 filtered_columns = ["Timestamp"]
-for sensor in df_pos.columns:
-    for filter_re in args.filter:
-        if re.search( filter_re, sensor ):
-            filtered_columns.append( sensor )
+for filter_re in args.filter:
+    [ filtered_columns.append(s)
+      for s in df_pos.columns if re.search(filter_re, s) and s not in filtered_columns ]
 if len(filtered_columns) == 1: # If only "Timestamp" then take all.
     filtered_columns = df_pos.columns
-df_pos = df_pos[filtered_columns]# Not necessary...
+df_pos = df_pos[filtered_columns] # Not necessary, might save some memory.
 print( df_pos.head() )
 print( df_pos.tail() )
 

@@ -46,11 +46,15 @@ python mocap_plot.py -f mocap_valentijn/beach_repr_2b_velocity_M.tsv -d mocap_va
 
 ### `mocap_plot_raw.py`
 
-Plots raw sensor data from a tab separated file from the MoCap system.
+Plots raw sensor data from a tab separated file from the MoCap
+system. Add filter(s) with the `-F` parameter. Specifying the `-s`
+option creates a separate file for each sensor. The `-w` option
+creates a "pseudo wave file" which can be loaded into Elan to
+visualise the amount of motion as a waveform.
 
 Example:
 ```shell
-python mocap_plot_raw.py -f mocap_valentijn/beach_repr_2b.tsv 
+python mocap_plot_raw.py -f mocap_valentijn/beach_repr_2b.tsv -F X_RHand -F b_RHand
 ```
 
 ### `mocap_plot_dists.py`

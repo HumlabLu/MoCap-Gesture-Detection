@@ -1,6 +1,6 @@
 import pandas as pd
 import math
-import sys
+import sys, re
 import matplotlib.pyplot as mp
 import matplotlib as mpl
 import matplotlib.dates as dates
@@ -22,8 +22,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument( "-f", "--distsfilename",
                      help="MoCap tsv file (distances, from mocap_gen_dists.py)." )
-parser.add_argument( "-F", "--filter", default = "_",
-                     help="Filter column names." )
+parser.add_argument( "-F", "--filter", action="append",
+                     help="Regexp to filter sensor name.", default=[] )
 parser.add_argument( "-r", "--resample", default=None, type=str,
                      help="Resample time series." )
 args = parser.parse_args()
@@ -131,26 +131,17 @@ df_dists = pd.read_csv(
     sep="\t"
 )
 print( df_dists.columns )
-filtered_columns = [ col for col in df_dists.columns if args.filter in col ]
-print( filtered_columns )
+
+filtered_columns = []
+for filter_re in args.filter:
+    [ filtered_columns.append(s)
+      for s in df_dists.columns if re.search(filter_re, s) and s not in filtered_columns ]
+if len(filtered_columns) == 0: # If only empty then take all.
+    filtered_columns = df_dists.columns
+print( df_dists.head() )
+print( df_dists.tail() )
 
 # ----------------------------
-
-# A few ad hoc distance groups.
-group_Head = ["x_HeadFront", "x_HeadL", "x_HeadR", "x_HeadTop"]
-
-group_LFoot = ["x_LAnkleOut", "x_LForefootIn", "x_LForefootOut", "x_LHeelBack", "x_LKneeOut",
-               "x_LShin", "x_LThigh", "x_LToeTip"]
-group_RFoot = ["x_RAnkleOut", "x_RForefootIn", "x_RForefootOut", "x_RHeelBack", "x_RKneeOut",
-               "x_RShin", "x_RThigh", "x_RToeTip"]
-
-group_LArm = ["x_LShoulderBack", "x_LShoulderTop", "x_LArm", "x_LElbowOut", "x_LHandIn",
-              "x_LHandOut", "x_LWristIn", "x_LWristOut" ]
-group_RArm = ["x_RShoulderBack", "x_RShoulderTop", "x_RArm", "x_RElbowOut", "x_RHandIn",
-              "x_RHandOut", "x_RWristIn", "x_RWristOut" ]
-
-group_Body = ["x_BackL", "x_BackR", "x_Chest", "x_SpineTop", 
-              "x_WaistLBack", "x_WaistLFront", "x_WaistRBack", "x_WaistRFront"]
 
 # RESAMPLING
 
@@ -168,63 +159,5 @@ if args.resample:
     
 for col in filtered_columns:
     plot_group([col], df_dists)
-
-#plot_groups_lr( group_LArm, group_RArm, df_dists, title="Left and Right Arm" )
-
-# Create a new dataframe with "distance moved across threshold" indicators.
-# Determine threshold through statistical analysis?
-df_dists_t = pd.DataFrame()
-df_dists_t["Timestamp"] = df_dists["Timestamp"]
-
-'''
-for sensor in group_LArm + group_RArm:
-    df_dists_t[sensor+'_T'] = np.where( df_dists[sensor] > 1, 3, 0 )
-print( df_dists_t )
-
-# Plot distances
-fig, axes = mp.subplots(nrows=2, ncols=1, figsize=(12,6), sharex=True, sharey=True)
-fig.suptitle( "Distances Right and Left Elbows" )
-
-# Field to test colour/size selection in plot.
-col = np.where(df_dists_t["x_LElbowOut_T"] > 1, 'r', 'b')
-siz = np.where(df_dists_t["x_LElbowOut_T"] > 1, 1, 0)
-cmap, norm = mpl.colors.from_levels_and_colors([0, 100, 1000], ['r', 'k'])
-
-axes[0].plot(
-    df_dists["Timestamp"].values,
-    df_dists["x_LElbowOut"].values,
-)
-axes[0].set_title("x_LElbowOut and marker")
-axes[0].scatter(
-    df_dists["Timestamp"].values,
-    df_dists_t["x_LElbowOut_T"].values,
-    s=siz, #c=col,
-    cmap='viridis'
-)
-axes[0].legend(loc="upper right")
-
-#axes[0].vlines(df_dists["Timestamp"].values,
-#               0, 2*df_dists_t["x_LElbowOut_T"].values) # colour according to real value?
-
-axes[0].scatter(
-    df_dists["Timestamp"].values,
-    df_dists_t["x_LElbowOut_T"].values,
-    s=siz, c=col,
-    #c=df_dists["x_LElbowOut"].values, cmap='viridis'
-)
-
-my_cmap = mp.get_cmap("viridis")
-rescale = lambda y: (y - np.min(y)) / (np.max(y) - np.min(y))
-axes[1].bar(
-    df_dists["Timestamp"].values,
-    df_dists_t["x_LElbowOut_T"].values,
-    color=my_cmap( rescale(df_dists["x_LElbowOut"].values) )
-    #s=siz, c=col,
-    #c=df_dists["x_LElbowOut"].values, cmap='viridis'
-)
-    
-axes[1].legend(loc="upper right")
-fig.tight_layout()
-'''
 
 mp.show()
