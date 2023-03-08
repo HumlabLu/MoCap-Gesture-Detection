@@ -5,6 +5,7 @@ import matplotlib.pyplot as mp
 import matplotlib as mpl
 import matplotlib.dates as dates
 import numpy as np
+import datetime
 from matplotlib.colors import Normalize
 from matplotlib import cm
 import argparse
@@ -27,6 +28,13 @@ args = parser.parse_args()
 
 # ============================================================================
 
+def time_ticks(x, pos):
+    x = x / 1_000_000 # Scale back to milliseconds, pd.Timedelta.resolution ) = 0 days 00:00:00.000000001
+    d = datetime.timedelta(milliseconds=x)
+    d_str = str(d)
+    return str(d)[0:11]
+time_formatter = mpl.ticker.FuncFormatter(time_ticks)
+
 # Each sensor in a separate plot.
 def plot_group(a_group, a_df, title=None):
     num_plots = len(a_group)
@@ -44,19 +52,24 @@ def plot_group(a_group, a_df, title=None):
         nozeroes = np.ma.masked_where(a_df[sensor].values != 0, a_df[sensor].values)
         if False:
             ax.plot(
-                a_df["Timestamp"].values,
+                #a_df["Timestamp"].values,
+                a_df.index.values,
                 #a_df[sensor].values,
                 zeroes
             )
             ax.plot(
-                a_df["Timestamp"].values,
+                #a_df["Timestamp"].values,
+                a_df.index.values,
                 #a_df[sensor].values,
                 nozeroes
             )
         else:
-            ax.vlines(a_df["Timestamp"].values,
+            ax.vlines(a_df.index.values,
                       0, a_df[sensor].values) 
         ax.set_title( str(sensor) )
+        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(20))
+        ax.xaxis.set_major_formatter(time_formatter)
+        fig.autofmt_xdate()
     fig.tight_layout()
 
 # Similar dataframes, one left, one right.
@@ -161,7 +174,7 @@ if args.resample:
     df_dists = df_dists.resample(args.resample).sum() 
     print( df_dists.head() )
     print( df_dists.tail() )
-    df_dists = df_dists[:-1] # To remove the last invalid "peak" (wrong timestamp?)
+    #df_dists = df_dists[:-1] # To remove the last invalid "peak" (wrong timestamp?)
 
 # ============================================================================
 # Plot
