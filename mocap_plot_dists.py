@@ -20,9 +20,9 @@ import argparse
 # ----------------------------
 
 parser = argparse.ArgumentParser()
-parser.add_argument( "-d", "--distsfilename",
+parser.add_argument( "-f", "--distsfilename",
                      help="MoCap tsv file (distances, from mocap_gen_dists.py)." )
-parser.add_argument( "-f", "--filter", default = "_",
+parser.add_argument( "-F", "--filter", default = "_",
                      help="Filter column names." )
 parser.add_argument( "-r", "--resample", default=None, type=str,
                      help="Resample time series." )
