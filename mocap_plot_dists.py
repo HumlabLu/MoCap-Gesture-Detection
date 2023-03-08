@@ -48,19 +48,15 @@ def plot_group(a_group, a_df, title=None):
             ax = axes[i]
         # Two plots, one for the zeroes and one for the rest. Initially
         # we had just one plot with a_df[sensor].values.
-        zeroes = np.ma.masked_where(a_df[sensor].values == 0, a_df[sensor].values)
+        zeroes   = np.ma.masked_where(a_df[sensor].values == 0, a_df[sensor].values)
         nozeroes = np.ma.masked_where(a_df[sensor].values != 0, a_df[sensor].values)
         if False:
             ax.plot(
-                #a_df["Timestamp"].values,
                 a_df.index.values,
-                #a_df[sensor].values,
                 zeroes
             )
             ax.plot(
-                #a_df["Timestamp"].values,
                 a_df.index.values,
-                #a_df[sensor].values,
                 nozeroes
             )
         else:
