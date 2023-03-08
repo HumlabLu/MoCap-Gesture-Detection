@@ -112,6 +112,7 @@ print( "Saved:", dists_filename )
 if args.save or args.wave:
     import scipy.io.wavfile as wv
     import numpy as np
+    filepath_bits  =  os.path.split( dists_filename ) # Now we use dists filename!
     for col in column_names[1:]:
         data = df_dists[col]
         if args.save:
