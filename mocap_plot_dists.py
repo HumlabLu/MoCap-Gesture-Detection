@@ -11,13 +11,10 @@ import argparse
 
 # Use PYVENV in Development
 # (PYVENV) pberck@ip30-163 MoCap %
+
+# ============================================================================
 # python mocap_plot.py -d mocap_valentijn/beach_repr_2b_dists.tsv
-
-# Create/add to an (existing) EAF file.
-
-# Resample!
-
-# ----------------------------
+# ============================================================================
 
 parser = argparse.ArgumentParser()
 parser.add_argument( "-f", "--distsfilename",
@@ -28,7 +25,7 @@ parser.add_argument( "-r", "--resample", default=None, type=str,
                      help="Resample time series." )
 args = parser.parse_args()
 
-# ----------------------------
+# ============================================================================
 
 # Each sensor in a separate plot.
 def plot_group(a_group, a_df, title=None):
@@ -123,14 +120,19 @@ def plot_groups_combined_stacked(l_group, r_group, a_df, title=None, subtitles=N
             axes[i].set_title( subtitles[i] )
     fig.tight_layout()
 
-# ----------------------------
+# ============================================================================
+# Read the data.
+# ============================================================================
 
-# Read the distance data
 df_dists = pd.read_csv(
     args.distsfilename,
     sep="\t"
 )
 print( df_dists.columns )
+
+# ============================================================================
+# Filter the coilumns
+# ============================================================================
 
 filtered_columns = []
 for filter_re in args.filter:
@@ -141,13 +143,17 @@ if len(filtered_columns) == 0: # If only empty then take all.
 print( df_dists.head() )
 print( df_dists.tail() )
 
-# ----------------------------
-
-# RESAMPLING
+# ============================================================================
+# Add timedelta column as index.
+# ============================================================================
 
 df_dists['td'] = pd.to_timedelta(df_dists['Timestamp'], 's') # Create a timedelta column
 df_dists = df_dists.set_index(df_dists['td']) # and use it as index
 print( df_dists.head() )
+
+# ============================================================================
+# Resample
+# ============================================================================
 
 # sum() works better than mean() or max()
 if args.resample:
@@ -156,7 +162,11 @@ if args.resample:
     print( df_dists.head() )
     print( df_dists.tail() )
     df_dists = df_dists[:-1] # To remove the last invalid "peak" (wrong timestamp?)
-    
+
+# ============================================================================
+# Plot
+# ============================================================================
+
 for col in filtered_columns:
     plot_group([col], df_dists)
 
