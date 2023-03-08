@@ -40,16 +40,6 @@ args = parser.parse_args()
 for arg in vars(args):
      print( arg, "=", getattr(args, arg) )
 
-'''
-ls mocap_valentijn/*tsv
-  mocap_valentijn/beach_repr_2b.tsv		mocap_valentijn/beach_repr_2b_ang_acc_RH.tsv
-  mocap_valentijn/beach_repr_2b_ang_acc_LH.tsv	mocap_valentijn/beach_repr_2b_velocity_M.tsv
-
-ls *tsv
-  beach_repr_2b.tsv		beach_repr_2b_ang_acc_RH.tsv	beach_repr_2b_velocity_M.tsv
-  beach_repr_2b_ang_acc_LH.tsv	beach_repr_2b_dists.tsv
-'''
-
 # ----------------------------
 
 # Read the distance data and EAF file.
@@ -63,7 +53,7 @@ df_dists = pd.read_csv(
 )
 
 if not args.eaffilename:
-    print( "No EAF filename specified, creating a new EAF file." )
+    print( "No EAF filename specified, creating a new EAF file (mocap_eaf.py)." )
     eaf = pympi.Elan.Eaf(author='mocap_eaf.py')
 else:
     eaf = pympi.Elan.Eaf(file_path=args.eaffilename, author='mocap_eaf.py')
@@ -131,7 +121,7 @@ for sensor in sorted(filtered_sensors):
             #print( "NEW {:.3f} {:.4f}".format(float(ts), float(x)) )
             inside = True
             #st = int(ts / 1000000) # start time
-            st = int(ts * 1000) # start time ?????????????????
+            st = int(ts * 1000)
             empty_time = st - previous_annotation[1] # to see if close to previous
             if empty_time < args.minimumgap: #arbitrary... 120ms
                 #print( "Short", previous_annotation )
