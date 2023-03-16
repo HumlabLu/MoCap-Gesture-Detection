@@ -228,12 +228,18 @@ for col in zeroes:
 # sum() works better than mean() or max()
 if args.resample:
     print( "Resampling", args.resample )
-    df_pos = df_pos.resample(args.resample).sum() # or mean()
-    print( df_pos.head() )
-    print( df_pos.tail() )
+    df_pos = df_pos.resample(args.resample).sum()
     print( "\n============ After resampling =================" )
     print( df_pos.head() )
     print( df_pos.tail() )
+    df_vel = df_vel.resample(args.resample).sum()
+    print( "\n============ After resampling =================" )
+    print( df_vel.head() )
+    print( df_vel.tail() )
+    df_acc = df_acc.resample(args.resample).sum()
+    print( "\n============ After resampling =================" )
+    print( df_acc.head() )
+    print( df_acc.tail() )
 
 # ============================================================================
 # Saving.
