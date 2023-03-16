@@ -317,14 +317,5 @@ else:
         col_name = filtered_columns[i][:-2] # Remove _X
         plot_triplet( [col_name+"_d3D", col_name+"_vel", col_name+"_acc"],
                       [df_dis, df_vel.abs(), df_acc.abs()] )
-        '''
-        plot_group([col_name+"_d3D"], df_dis, title=None)
-        plot_group([col_name+"_vel"], df_vel.abs(), title=None)
-        plot_group([col_name+"_acc"], df_acc.abs(), title=None)
-        '''
-#df_pos = (df_pos - df_pos.mean())/df_pos.std() # Normalisation
-#df_pos = (df_pos - df_pos.min())/(df_pos.max()-df_pos.min()) # Min-max normalisation
-#for col in filtered_columns[1:]: # Skip "Timestamp"
-#    plot_group([col], df_pos)
 
 mp.show()
