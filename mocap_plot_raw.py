@@ -9,6 +9,7 @@ import datetime
 from matplotlib.colors import Normalize
 from matplotlib import cm
 import argparse
+from MoCap.File import MoCapReader
 
 # ============================================================================
 # Plots the "raw" .tsv sensor data from the MoCap system.
@@ -122,6 +123,9 @@ def plot_group_combined(a_group, a_df, title=None):
 # All sensors in the same plot, stacked (e g _X, _Y, _Z)
 def plot_group_combined_stacked(a_group, a_df, title=None):
     num_plots = len(a_group)
+    if num_plots == 1:
+        print( "Please rujn without the \"-c\" option." )
+        sys.exit(1)
     fig, axes = mp.subplots(nrows=num_plots, ncols=1, figsize=(12,9), sharex=True, sharey=True)
     if title:
         fig.suptitle( title )
@@ -176,49 +180,31 @@ def plot_groups_combined_stacked(l_group, r_group, a_df, title=None, subtitles=N
 # Main
 # ============================================================================
 
-# Read the sensor data into a dataframe.
-df      = None
-df_rows = []
-lnum    = 0
-freq    = 200 # Parse this from file header.
-with open(args.filename, "r") as f:
-    for line in f:
-        bits = line.split()
-        if bits[0] == "FREQUENCY":
-            freq = int(bits[1])
-        if bits[0] == "MARKER_NAMES":
-            column_names = bits[1:] # We add a Timestamp later to this too.
-            print( column_names )
-            new_column_names = ["Timestamp"]
-            for col in column_names:
-                # We have three values for each sensor.
-                for coord in ["_X", "_Y", "_Z"]: 
-                    new_column_names.append( col+coord )
-        if len(bits) > 65:
-            try:
-                bits     = [ float(x) for x in bits ]
-                triplets = [bits[i:i + 3] for i in range(2,len(bits)-2, 3)]
-                df_rows.append( bits[1:] ) # Skip index number.
-            except ValueError:
-                print( "Skipping line", lnum )
-        lnum += 1
+r = MoCapReader()
+res = r.read( args.filename )
+if not res:
+    print( "Error reading", args.filename )
+    sys.exit(1)
 
-df_pos = pd.DataFrame(
-    df_rows,
-    columns=new_column_names
-)
+#print( r.get_info() )
+df_pos = r.get_df() 
+df_vel = r.get_df_vel()
+df_acc = r.get_df_acc()
+r.save(index=True)
+print( df_pos.head() )
 
 # ============================================================================
 # Apply the filters.
 # ============================================================================
 
-filtered_columns = ["Timestamp"]
-for filter_re in args.filter:
-    [ filtered_columns.append(s)
-      for s in df_pos.columns if re.search(filter_re, s) and s not in filtered_columns ]
-if len(filtered_columns) == 1: # If only "Timestamp" then take all.
+filtered_columns = []
+for sensor in df_pos.columns:
+    for filter_re in args.filter:
+        if re.search( filter_re, sensor ):
+            filtered_columns.append( sensor )
+if len(filtered_columns) == 0: # If none, take all!
     filtered_columns = df_pos.columns
-df_pos = df_pos[filtered_columns] # Not necessary, might save some memory.
+df_pos = df_pos[filtered_columns]# Not necessary...
 print( df_pos.head() )
 print( df_pos.tail() )
 
@@ -227,19 +213,17 @@ print( df_pos.tail() )
 # ============================================================================
 
 print( "\nCount Zero:" )
-for col in df_pos.columns[1:]:
-    count = (df_pos[col] == 0).sum()
-    frames = len(df_pos[col])
-    pct = count * 100.0 / frames 
-    print( f"{col:<20} {count:8d} ({pct:5.1f}%)" )
-    
+zeroes = r.count_zero()
+#print( zeroes )
+for col in zeroes:
+    count, frames = zeroes[col]
+    if count > 0:
+        pct = count * 100.0 / frames 
+        print( f"{col:<20} {count:8d} ({pct:5.1f}%)" )
+
 # ============================================================================
 # Resampling.
 # ============================================================================
-
-df_pos['td'] = pd.to_timedelta(df_pos['Timestamp'], 's') # Create a Timestamp column
-df_pos = df_pos.set_index(df_pos['td']) # and use it as index
-#df_pos = df_pos.drop(["Timestamp"], axis=1)
 
 # sum() works better than mean() or max()
 if args.resample:
@@ -281,13 +265,16 @@ if args.save or args.wave:
 # ============================================================================
 
 if not args.combine:
-    for col in filtered_columns[1:]: # Skip "Timestamp"
+    for col in filtered_columns:
         plot_group([col], df_pos)
 else:
-    for i in range(0, len(filtered_columns[1:]), 3): # triples of _x _y _z
-        cols = filtered_columns[i+1:i+1+3] # +1 to skip "Timestamp"
+    for i in range(0, len(filtered_columns), 3): # triples of _x _y _z
+        cols = filtered_columns[i:i+3]
         #plot_group_combined(cols, df_pos, title=None) # In the same plot
         plot_group_combined_stacked(cols, df_pos, title=None)
+        col_name = filtered_columns[i][:-2] # Remove _X
+        plot_group([col_name+"_vel"], df_vel, title=None)
+        plot_group([col_name+"_acc"], df_acc, title=None)
     
 #df_pos = (df_pos - df_pos.mean())/df_pos.std() # Normalisation
 #df_pos = (df_pos - df_pos.min())/(df_pos.max()-df_pos.min()) # Min-max normalisation
