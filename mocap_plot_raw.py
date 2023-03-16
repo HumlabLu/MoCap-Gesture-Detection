@@ -187,7 +187,8 @@ if not res:
     sys.exit(1)
 
 #print( r.get_info() )
-df_pos = r.get_df() 
+df_pos = r.get_df()
+df_dis = r.get_df_dist()
 df_vel = r.get_df_vel()
 df_acc = r.get_df_acc()
 r.save(index=True)
@@ -232,6 +233,10 @@ if args.resample:
     print( "\n============ After resampling =================" )
     print( df_pos.head() )
     print( df_pos.tail() )
+    df_dis = df_dis.resample(args.resample).sum()
+    print( "\n============ After resampling =================" )
+    print( df_dis.head() )
+    print( df_dis.tail() )
     df_vel = df_vel.resample(args.resample).sum()
     print( "\n============ After resampling =================" )
     print( df_vel.head() )
@@ -279,8 +284,9 @@ else:
         #plot_group_combined(cols, df_pos, title=None) # In the same plot
         plot_group_combined_stacked(cols, df_pos, title=None)
         col_name = filtered_columns[i][:-2] # Remove _X
-        plot_group([col_name+"_vel"], df_vel, title=None)
-        plot_group([col_name+"_acc"], df_acc, title=None)
+        plot_group([col_name+"_d3D"], df_dis, title=None)
+        plot_group([col_name+"_vel"], df_vel.abs(), title=None)
+        plot_group([col_name+"_acc"], df_acc.abs(), title=None)
     
 #df_pos = (df_pos - df_pos.mean())/df_pos.std() # Normalisation
 #df_pos = (df_pos - df_pos.min())/(df_pos.max()-df_pos.min()) # Min-max normalisation
