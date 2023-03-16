@@ -68,7 +68,7 @@ class MoCapReader():
         df_dist_rows = []
         df_times = []
         lnum = 0
-        freq = 200 # Default, parse this from file header.
+        self.freq = 200 # Default, parse this from file header.
         frame_counter = 0
         time_index    = 0
         tripets = []
@@ -85,7 +85,7 @@ class MoCapReader():
                     if len(bits) == 2:
                         self.info[bit0] = bits[1]
                         if bit0 == "FREQUENCY":
-                            freq = int(bits[1])
+                            self.freq = int(bits[1])
                     else:
                         self.info[bit0] = " ".join(bits[1:])
                     if bit0 == "MARKER_NAMES":
@@ -111,7 +111,7 @@ class MoCapReader():
                             # We generate them instead. Some tsv files appear to be mising them. 
                             times = [ frame_counter, time_index ]
                             frame_counter += 1
-                            time_index += 1.0 / freq
+                            time_index += 1.0 / self.freq
                         else:
                             times = bits[0:2]
                             bits = bits[2:]
@@ -169,25 +169,33 @@ class MoCapReader():
         self.df_dist = self.df_dist.drop(["td"], axis=1) # the index now.
         print( self.df_dist )
         #
-        # We can convert it to velocities?
+        self.calc_vel()
+        print( self.df_vel )
+        #
+        # And acceleration
+        self.calc_acc()
+        print( self.df_acc )
+        #
+        return True
+
+    def calc_vel(self):
         self.df_vel = self.df_dist.diff().fillna(0)
-        self.df_vel = self.df_vel * freq # Maybe not, keep it frame based?
+        self.df_vel = self.df_vel * self.freq # Maybe not, keep it frame based?
         self.dist_column_names = []
         for col in self.column_names:
             self.dist_column_names.append( col+"_vel" )
         self.df_vel.columns = self.dist_column_names
         print( self.df_vel )
-        #
+
+    def calc_acc(self):
         # And acceleration
         self.df_acc = self.df_vel.diff().fillna(0)
-        self.df_acc = self.df_acc * freq 
+        self.df_acc = self.df_acc * self.freq 
         self.dist_column_names = []
         for col in self.column_names:
             self.dist_column_names.append( col+"_acc" )
         self.df_acc.columns = self.dist_column_names
         print( self.df_acc )
-        #
-        return True
 
     # ============================================================================
     # Resample the data, in place.
