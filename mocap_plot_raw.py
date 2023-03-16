@@ -79,6 +79,37 @@ def plot_group(a_group, a_df, title=None):
         fig.autofmt_xdate()
     fig.tight_layout()
 
+def plot_triplet(sensors, dfs, title=None):
+    num_plots = len(sensors)
+    fig, axes = mp.subplots(nrows=num_plots, ncols=1, figsize=(12,9), sharex=True) #, sharey=True)
+    if title:
+        fig.suptitle( title )
+    for i in range(len(sensors)):
+        if num_plots == 1: # We can't index if nrows==1
+            ax = axes
+        else:
+            ax = axes[i]
+        # Two plots, one for the zeroes and one for the rest.
+        sensor = sensors[i]
+        a_df = dfs[i]
+        zeroes   = np.ma.masked_where(a_df[sensor].values == 0, a_df[sensor].values)
+        nozeroes = np.ma.masked_where(a_df[sensor].values != 0, a_df[sensor].values)
+        ax.plot(
+            a_df.index.values,
+            zeroes
+        )
+        ax.plot(
+            a_df.index.values,
+            nozeroes
+        )
+        #ax.vlines(a_df.index.values, 0, a_df[sensor].values) 
+        ax.set_title( str(sensor) )
+        #mp.locator_params(axis='x', nbins=20)
+        ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(20))
+        ax.xaxis.set_major_formatter(time_formatter)
+        fig.autofmt_xdate()
+    fig.tight_layout()
+    
 # Similar dataframes, one left, one right.
 def plot_groups_lr(l_group, r_group, a_df, title=None):
     num_plots = len(l_group) # assume same length
@@ -284,10 +315,13 @@ else:
         #plot_group_combined(cols, df_pos, title=None) # In the same plot
         plot_group_combined_stacked(cols, df_pos, title=None)
         col_name = filtered_columns[i][:-2] # Remove _X
+        plot_triplet( [col_name+"_d3D", col_name+"_vel", col_name+"_acc"],
+                      [df_dis, df_vel.abs(), df_acc.abs()] )
+        '''
         plot_group([col_name+"_d3D"], df_dis, title=None)
         plot_group([col_name+"_vel"], df_vel.abs(), title=None)
         plot_group([col_name+"_acc"], df_acc.abs(), title=None)
-    
+        '''
 #df_pos = (df_pos - df_pos.mean())/df_pos.std() # Normalisation
 #df_pos = (df_pos - df_pos.min())/(df_pos.max()-df_pos.min()) # Min-max normalisation
 #for col in filtered_columns[1:]: # Skip "Timestamp"
