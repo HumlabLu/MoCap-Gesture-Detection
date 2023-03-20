@@ -83,9 +83,11 @@ for cn, col in enumerate(df_sig):
     anno_start = 0
     anno_end = 0
     anno_frames = 0
+    num_frames = 0
     annotations = []
     for t, v in zip(times, values):
-        #print( t,v )
+        #Print( t,v )
+        num_frames += 1
         if not in_anno and v > col_threshold: # Potential new annotation.
             gap = t - anno_end
             if gap < args.mingap/1000.0: # Less than minimum gap, continue the "motion"
@@ -100,17 +102,18 @@ for cn, col in enumerate(df_sig):
             in_anno = True
             continue
         if in_anno and v > col_threshold:
-            anno_end = t
+            anno_end = t 
             anno_frames += 1
             continue
         if in_anno and v <= col_threshold:
-            anno_end = t
+            anno_end = t #- r.get_period()
             annotations.append( (anno_start, anno_end, (anno_end-anno_start), col) )
             in_anno = False
     if in_anno:
-        anno_end = t
+        anno_end = t #- r.get_period()
         annotations.append( (anno_start, anno_end, (anno_end-anno_start), col) )
         in_anno = False
+    # ---
     with open(motion_filename, "a") as f:
         col_name = col[:-4] # Remove the _d3D bit at the end
         print( col_name )
@@ -122,9 +125,15 @@ for cn, col in enumerate(df_sig):
                 gap = anno[0] - last_end
                 if gap > 0:
                     print( f"{gap:7.3f} gap" )
+                    markers +=  [0] * int(gap/r.get_period()) 
                 print( f"{anno[0]:7.3f}-{anno[1]:7.3f} {anno[2]:.3f}" )
                 f.write( f"{anno[0]}, {anno[1]}, {round(anno[2],3)}\n" )
+                markers +=  [1] * int(anno[2]/r.get_period()) 
                 last_end = anno[1]
+        # Fill markers to end.
+        markers += [0] * (num_frames - len(markers)) 
         print()
+        #for i,(a,m) in enumerate(zip(values,markers)):
+        #    print( i/r.get_freq(), a, m )
         f.write( "\n" )
 print( "Saved in", motion_filename )
