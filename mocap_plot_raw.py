@@ -227,10 +227,12 @@ print( df_pos.head() )
 
 # ============================================================================
 # Apply the filters.
+# TODO: add the filter code to Reader, but return just a list with
+#       filtered column names (on the original colums).
 # ============================================================================
 
 filtered_columns = []
-for sensor in df_pos.columns:
+for sensor in df_pos.columns: # Note, including _X _Y _Z so only for df_pos!
     for filter_re in args.filter:
         if re.search( filter_re, sensor ):
             filtered_columns.append( sensor )
@@ -306,6 +308,13 @@ if args.save or args.wave:
 # Plots.
 # ============================================================================
 
+from scipy.stats.mstats import winsorize
+'''
+The (limits[0])th lowest values are set to the (limits[0])th percentile,
+and the (limits[1])th highest values are set to the (1 - limits[1])th percentile.
+Masked values are skipped.
+'''
+
 if not args.combine:
     for col in filtered_columns:
         plot_group([col], df_pos)
@@ -315,7 +324,15 @@ else:
         #plot_group_combined(cols, df_pos, title=None) # In the same plot
         plot_group_combined_stacked(cols, df_pos, title=None)
         col_name = filtered_columns[i][:-2] # Remove _X
+        #
+        #percentiles = [0, 0]
+        #percentiles = [0.0005, 0.0005]
+        percentiles = [0.0001, 0.0001] # take away extreme values.
+        df_acc[col_name+"_acc"] = winsorize(df_acc[col_name+"_acc"], percentiles)
+        df_vel[col_name+"_vel"] = winsorize(df_vel[col_name+"_vel"], percentiles)
+        df_dis[col_name+"_d3D"] = winsorize(df_dis[col_name+"_d3D"], percentiles)
+        #
         plot_triplet( [col_name+"_d3D", col_name+"_vel", col_name+"_acc"],
-                      [df_dis, df_vel.abs(), df_acc.abs()] )
-
+                      [df_dis, df_vel, df_acc] )
+        
 mp.show()
