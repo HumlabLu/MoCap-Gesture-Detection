@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from MoCap.File import MoCapReader
+from scipy.stats.mstats import winsorize
 
 # Use PYVENV in Development
 
@@ -26,10 +27,16 @@ parser.add_argument( "-S", "--save", action="store_true",
                      help="Save individual sensors." )
 parser.add_argument( "-o", "--outfile", default=None, type=str,
                      help="Save motion data in outfile." )
+parser.add_argument( "-W", "--winsorise", default=0.0, type=float,
+                     help="Clip data to N (eg 0.0001) percentiles." )
 args = parser.parse_args()
 
 if not args.outfile:
-    param_str = f"{args.signal}_t{args.threshold}l{args.minlength}g{args.mingap}"
+    if args.winsorise:
+        w_str = str(args.winsorise)[2:]
+        param_str = f"{args.signal}_t{args.threshold}l{args.minlength}g{args.mingap}W{w_str}"
+    else:
+        param_str = f"{args.signal}_t{args.threshold}l{args.minlength}g{args.mingap}W0"
     filepath_bits  = os.path.split( args.filename )
     motion_filename = os.path.join( filepath_bits[0], filepath_bits[1][:-4] + "_m_"+param_str+".csv" )
 else:
@@ -61,6 +68,9 @@ else:
 print( df_sig )
 
 for cn, col in enumerate(df_sig):
+    if args.winsorise > 0.0:
+        percentiles = [args.winsorise, args.winsorise] # take away extreme values.
+        df_sig[col] = winsorize(df_sig[col], percentiles)
     col_max = df_sig[col].abs().max()
     col_min = df_sig[col].abs().min()
     col_threshold = (col_max-col_min)*(args.threshold/100.0) + col_min
@@ -105,10 +115,16 @@ for cn, col in enumerate(df_sig):
         col_name = col[:-4] # Remove the _d3D bit at the end
         print( col_name )
         f.write( col_name+"\n" )
+        last_end = 0
+        markers = []
         for anno in annotations:
             if anno[2] > args.minlength/1000.0: # Print is longer than 0.5 seconds
-                print( f"{anno[0]:6.3f}-{anno[1]:6.3f} {anno[2]:.3f}" )
+                gap = anno[0] - last_end
+                if gap > 0:
+                    print( f"{gap:7.3f} gap" )
+                print( f"{anno[0]:7.3f}-{anno[1]:7.3f} {anno[2]:.3f}" )
                 f.write( f"{anno[0]}, {anno[1]}, {round(anno[2],3)}\n" )
+                last_end = anno[1]
         print()
         f.write( "\n" )
 print( "Saved in", motion_filename )
