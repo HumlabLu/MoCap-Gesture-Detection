@@ -47,6 +47,12 @@ class MoCapReader():
     def get_info(self):
         return self.info
 
+    def get_freq(self):
+        return self.freq
+    
+    def get_period(self):
+        return 1.0/self.freq
+
     def is_stringline(self, thing):
         return re.match(r'[A-Z_]+', thing)
 
