@@ -8,6 +8,7 @@ import numpy as np
 import datetime
 from matplotlib.colors import Normalize
 from matplotlib import cm
+from scipy.stats.mstats import winsorize
 import argparse
 from MoCap.File import MoCapReader
 
@@ -35,7 +36,9 @@ parser.add_argument( "-s", "--save", action="store_true",
 parser.add_argument( "-w", "--wave", action="store_true",
                      help="Save each sensor as a pseudo wave file." )
 parser.add_argument( "-c", "--combine", action="store_true",
-                     help="Combine X, Y and Z in one plot." )
+                     help="Combine X, Y and Z in one plot, add d3D, vel and acc plot." )
+parser.add_argument( "-W", "--winsorise", default=0.0, type=float,
+                     help="Clip d3D, vel and acc data to N (eg 0.0001) percentiles." )
 args = parser.parse_args()
 
 # ============================================================================
@@ -308,13 +311,6 @@ if args.save or args.wave:
 # Plots.
 # ============================================================================
 
-from scipy.stats.mstats import winsorize
-'''
-The (limits[0])th lowest values are set to the (limits[0])th percentile,
-and the (limits[1])th highest values are set to the (1 - limits[1])th percentile.
-Masked values are skipped.
-'''
-
 if not args.combine:
     for col in filtered_columns:
         plot_group([col], df_pos)
@@ -326,11 +322,13 @@ else:
         col_name = filtered_columns[i][:-2] # Remove _X
         #
         #percentiles = [0, 0]
-        #percentiles = [0.0005, 0.0005]
-        percentiles = [0.0001, 0.0001] # take away extreme values.
-        df_acc[col_name+"_acc"] = winsorize(df_acc[col_name+"_acc"], percentiles)
-        df_vel[col_name+"_vel"] = winsorize(df_vel[col_name+"_vel"], percentiles)
-        df_dis[col_name+"_d3D"] = winsorize(df_dis[col_name+"_d3D"], percentiles)
+        if args.winsorise > 0.0:
+            percentiles = [args.winsorise, args.winsorise] # take away extreme values.
+            #percentiles = [0.0001, 0.0001]
+            #percentiles = [0.0005, 0.0005]
+            df_dis[col_name+"_d3D"] = winsorize(df_dis[col_name+"_d3D"], percentiles)
+            df_acc[col_name+"_acc"] = winsorize(df_acc[col_name+"_acc"], percentiles)
+            df_vel[col_name+"_vel"] = winsorize(df_vel[col_name+"_vel"], percentiles)
         #
         plot_triplet( [col_name+"_d3D", col_name+"_vel", col_name+"_acc"],
                       [df_dis, df_vel, df_acc] )
