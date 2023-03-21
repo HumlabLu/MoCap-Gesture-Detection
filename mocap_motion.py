@@ -42,8 +42,7 @@ if not args.outfile:
 else:
     motion_filename = args.outfile
 if os.path.exists( motion_filename ):
-    print( "File exists", motion_filename )
-    sys.exit(1)
+    print( "File exists, overwriting", motion_filename )
 
 # ============================================================================
 # Read the data.
