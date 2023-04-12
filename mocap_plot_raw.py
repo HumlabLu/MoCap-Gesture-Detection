@@ -112,7 +112,9 @@ def plot_triplet(sensors, dfs, title=None):
         ax.xaxis.set_major_formatter(time_formatter)
         fig.autofmt_xdate()
     fig.tight_layout()
-    
+    png_filename = sensors[0] + ".png"
+    fig.savefig(png_filename, dpi=144)
+
 # Similar dataframes, one left, one right.
 def plot_groups_lr(l_group, r_group, a_df, title=None):
     num_plots = len(l_group) # assume same length
@@ -158,7 +160,7 @@ def plot_group_combined(a_group, a_df, title=None):
 def plot_group_combined_stacked(a_group, a_df, title=None):
     num_plots = len(a_group)
     if num_plots == 1:
-        print( "Please rujn without the \"-c\" option." )
+        print( "Please run without the \"-c\" option." )
         sys.exit(1)
     fig, axes = mp.subplots(nrows=num_plots, ncols=1, figsize=(12,9), sharex=True, sharey=True)
     if title:
@@ -185,6 +187,8 @@ def plot_group_combined_stacked(a_group, a_df, title=None):
     axes[0].xaxis.set_major_formatter(time_formatter)
     fig.autofmt_xdate()
     fig.tight_layout()
+    png_filename = a_group[0] + ".png"
+    fig.savefig(png_filename, dpi=144)
 
 # All sensors from two similar dataframes, one up, one down.
 def plot_groups_combined_stacked(l_group, r_group, a_df, title=None, subtitles=None):
